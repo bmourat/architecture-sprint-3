@@ -1,0 +1,39 @@
+
+@startuml
+!include ./lib/C4_Component.puml
+
+title Component Diagram: Devices Service Container
+
+AddElementTag("broker", $bgColor="lightsalmon", $fontColor="white")
+
+Container_Boundary(c1, "Device Service") {
+    Component(user_devices_controller, "Device Controller", "Manages requests")
+    Component(user_devices_bll, "Device Service", "Business logic for devices")
+    Component(devices_repository, "Device Repository")
+    Component(automation_repository, "Automation Repository")
+    Component(event_publisher, "Event Publisher")
+    Component(automation_executor, "Automation Executor", "Execute custom scripts and user plane")
+}
+
+Container(api_gateway, "API Gateway", "Kong", "Gateway for client communication with services")
+
+ContainerDb(user_devices_db, "Devices Database", "PostgreSQL")
+ContainerQueue(message_queue, "Message Broker", Apache Kafka, $tags="broker")
+
+Rel(api_gateway, user_devices_controller, "HTTPS")
+
+Rel(user_devices_controller, user_devices_bll, "Calls")
+
+Rel(user_devices_bll, devices_repository, "Database queries")
+Rel(user_devices_bll, automation_repository, "Database queries")
+Rel(automation_executor, automation_repository, "Database queries")
+
+Rel(user_devices_bll, event_publisher, "Publishing device telemetry")
+Rel(automation_executor, event_publisher, "Publishing device management events")
+
+Rel(event_publisher, message_queue, "Publishing device management events")
+
+Rel(devices_repository, user_devices_db, "Write/read data")
+Rel(automation_repository, user_devices_db, "Write/read data")
+
+@enduml

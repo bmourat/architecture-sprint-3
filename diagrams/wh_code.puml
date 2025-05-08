@@ -1,0 +1,128 @@
+@startuml
+package "Device Service" {
+
+    class DeviceService {
+        - deviceRepository: DeviceRepository
+        - automationRepository: AutomationRepository
+        - eventPublisher: EventPublisher
+        + registerUserDevice(userId: String, deviceId: String): void
+        + removeUserDevice(userId: String, deviceId: String): void
+        + controlDevice(userId: String, deviceId: String, command: DeviceCommand): CommandResult
+        + createAutomation(userId: String, automation: DeviceAutomation): String
+    }
+
+    class DeviceAutomation {
+        - id: String
+        - name: String
+        - userId: String
+        - triggers: List<AutomationTrigger>
+        - actions: List<AutomationAction>
+        - isEnabled: boolean
+        + getId(): String
+        + getName(): String
+        + isEnabled(): boolean
+        + setEnabled(enabled: boolean): void
+    }
+
+    class AutomationTrigger {
+        - triggerType: TriggerType
+        - conditions: List<TriggerCondition>
+        + evaluate(context: Map<String, Object>): boolean
+    }
+
+    class AutomationAction {
+        - deviceId: String
+        - actionType: String
+        - parameters: Map<String, Object>
+        + execute(): CommandResult
+    }
+}
+
+package "Automation Executor" {
+    class AutomationService {
+        - automationRepository: AutomationRepository
+        - deviceRepository: DeviceRepository
+        - eventPublisher: EventPublisher
+        + executeAutomation(automationId: String): void
+        + evaluateTriggers(deviceId: String, event: DeviceEvent): List<DeviceAutomation>
+        + publishActionEvent(action: AutomationAction): void
+    }
+
+    class DeviceEvent {
+        - deviceId: String
+        - eventType: EventType
+        - timestamp: LocalDateTime
+        - payload: Map<String, Object>
+        + getPayload(): Map<String, Object>
+    }
+
+    class DeviceCommand {
+        - commandType: String
+        - parameters: Map<String, Object>
+        + getCommandType(): String
+        + getParameter(name: String): Object
+    }
+}
+
+package "Repositories" {
+    interface DeviceRepository {
+        + save(device: Device): void
+        + findById(deviceId: String): Optional<Device>
+        + findByUserId(userId: String): List<Device>
+        + delete(deviceId: String): void
+        + addUserDevice(userId: String, deviceId: String): void
+        + removeUserDevice(userId: String, deviceId: String): void
+    }
+
+    interface AutomationRepository {
+        + save(automation: DeviceAutomation): String
+        + findById(automationId: String): Optional<DeviceAutomation>
+        + findByUserId(userId: String): List<DeviceAutomation>
+        + findByDeviceId(deviceId: String): List<DeviceAutomation>
+        + delete(automationId: String): void
+    }
+}
+
+package "Event Publishing" {
+    interface EventPublisher {
+        + publishDeviceTelemetry(telemetry: DeviceTelemetry): void
+        + publishDeviceStatusChange(deviceId: String, status: DeviceStatus): void
+        + publishAutomationExecuted(automationId: String, result: CommandResult): void
+    }
+
+    class KafkaEventPublisher implements EventPublisher {
+        - kafkaTemplate: KafkaTemplate
+        + publishDeviceTelemetry(telemetry: DeviceTelemetry): void
+        + publishDeviceStatusChange(deviceId: String, status: DeviceStatus): void
+        + publishAutomationExecuted(automationId: String, result: CommandResult): void
+    }
+}
+
+package "Controllers" {
+    class DeviceController {
+        - deviceService: DeviceService
+        + registerUserDevice(userId: String, request: RegisterUserDeviceRequest): ResponseEntity
+        + getUserDevices(userId: String): ResponseEntity
+        + sendCommand(userId: String, deviceId: String, command: DeviceCommandRequest): ResponseEntity
+        + createAutomation(userId: String, automation: AutomationRequest): ResponseEntity
+        + getAutomations(userId: String): ResponseEntity
+    }
+}
+
+DeviceService --> DeviceRepository: uses
+DeviceService --> AutomationRepository: uses
+DeviceService --> EventPublisher: uses
+DeviceService --> DeviceAutomation: manages
+
+AutomationService --> AutomationRepository: uses
+AutomationService --> DeviceRepository: uses
+AutomationService --> EventPublisher: uses
+AutomationService --> DeviceEvent: processes
+AutomationService ..> DeviceCommand: creates
+
+DeviceController --> DeviceService: uses
+
+DeviceAutomation *-- AutomationTrigger: contains
+DeviceAutomation *-- AutomationAction: contains
+
+@enduml
