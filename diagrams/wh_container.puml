@@ -1,0 +1,68 @@
+
+@startuml
+!include ./lib/C4_Container.puml
+
+AddElementTag("storage", $shape=RoundedBoxShape(), $bgColor="lightSkyBlue", $fontColor="white")
+AddElementTag("broker", $bgColor="lightsalmon", $fontColor="white")
+
+title Container Diagram for WarmHouse System
+
+Person(user, "User")
+Person(admin, "Administrator")
+
+System_Boundary(system_boundary, "WarmHouse System") {
+
+    Container(api, "API Gateway", NGINX)
+
+    Container(web, "Web Application", Web SPA)
+
+    Container(mob, "Mobile App", Mobile App)
+
+    Container(user_service, "User Service", Java, "User account management service")
+    ContainerDb(user_db, "Users DB", PostgreSQL, "User database", $tags="storage")
+
+    Container(home_service, "Home Service", Java, "Home management service")
+    ContainerDb(home_db, "Home DB", PostgreSQL, "Home database", $tags="storage")
+
+    Container(device_service, "Devices Service", Java, "Device configuration and management service")
+    ContainerDb(user_device_db, "Devices DB", PostgreSQL, "Device configuration and management service database", $tags="storage")
+
+    Container(monitoring_service, "Monitoring Service", Java, "Smart device monitoring service")
+    ContainerDb(monitoring_db, "Monitoring DB", MongoDB, "Smart device monitoring service database", $tags="storage")
+
+    ContainerQueue(message_queue, "Message Broker", Apache Kafka, $tags="broker")
+}
+
+Rel_D(user, web, "Requests")
+Rel_D(admin, web, "Requests")
+
+Rel_D(user, mob, "Requests")
+Rel_D(admin, mob, "Requests")
+
+Rel_D(web, api, "Request")
+Rel_U(api, web, "Response")
+
+Rel_D(mob, api, "Request")
+Rel_U(api, mob, "Response")
+
+Rel_D(api, user_service, "Verifies access rights and validates tokens")
+Rel_D(api, device_service, "Device registration and management")
+Rel_D(api, home_service, "Home management")
+
+Rel_D(user_service, user_db, "Read/write data")
+Rel_D(home_service, home_db, "Read/write data")
+
+Rel_D(monitoring_service, message_queue, "Sends device monitoring data")
+
+Rel(api, monitoring_service, "Send telemetry and monitoring data")
+
+Rel_D(device_service, user_device_db, "Read/write data")
+Rel_R(device_service, message_queue, "Publishes requests to smart device")
+
+Rel_D(message_queue, device_service, "Sends requests to the device")
+Rel_U(message_queue, monitoring_service, "Sends device monitoring data")
+
+Rel_U(monitoring_service, api, "Sends monitoring data to users")
+Rel(monitoring_service, monitoring_db, "Read/write data")
+
+@enduml

@@ -1,0 +1,182 @@
+@startuml
+skinparam linetype ortho
+skinparam backgroundColor white
+skinparam shadowing false
+
+entity "Device" as device {
+    * device_id : UUID <<PK>>
+    --
+    * name : varchar(100)
+    * type : varchar(50)
+    * model : varchar(100)
+    * manufacturer : varchar(100)
+    * firmware_version : varchar(50)
+    * connection_status : varchar(20)
+    * connection_protocol : varchar(20)
+    * ip_address : varchar(45)
+    * mac_address : varchar(17)
+    * last_online : timestamp
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "DeviceCapability" as deviceCapability {
+    * capability_id : UUID <<PK>>
+    * device_id : UUID <<FK>>
+    --
+    * capability_type : varchar(50)
+    * supported_commands : json
+    * properties : json
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "DeviceStatus" as deviceStatus {
+    * status_id : UUID <<PK>>
+    * device_id : UUID <<FK>>
+    --
+    * status_code : varchar(20)
+    * status_data : json
+    * battery_level : int
+    * is_online : boolean
+    * last_updated : timestamp
+}
+
+entity "UserDevice" as userDevice {
+    * user_device_id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * device_id : UUID <<FK>>
+    * home_id : UUID <<FK>>
+    --
+    * nickname : varchar(100)
+    * is_favorite : boolean
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "HomeSpace" as homeSpace {
+    * space_id : UUID <<PK>>
+    * home_id : UUID <<FK>>
+    --
+    * name : varchar(100)
+    * type : varchar(50)
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "SpaceDevice" as spaceDevice {
+    * space_device_id : UUID <<PK>>
+    * space_id : UUID <<FK>>
+    * device_id : UUID <<FK>>
+    --
+    * created_at : timestamp
+}
+
+entity "DeviceCommand" as deviceCommand {
+    * command_id : UUID <<PK>>
+    * device_id : UUID <<FK>>
+    * user_id : UUID <<FK>>
+    --
+    * command_type : varchar(50)
+    * parameters : json
+    * status : varchar(20)
+    * created_at : timestamp
+    * executed_at : timestamp
+    * result : json
+}
+
+entity "DeviceTelemetry" as deviceTelemetry {
+    * telemetry_id : UUID <<PK>>
+    * device_id : UUID <<FK>>
+    --
+    * telemetry_type : varchar(50)
+    * telemetry_data : json
+    * recorded_at : timestamp
+    * received_at : timestamp
+}
+
+entity "Automation" as automation {
+    * automation_id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * home_id : UUID <<FK>>
+    --
+    * name : varchar(100)
+    * description : text
+    * is_enabled : boolean
+    * created_at : timestamp
+    * updated_at : timestamp
+    * last_executed : timestamp
+}
+
+entity "AutomationTrigger" as automationTrigger {
+    * trigger_id : UUID <<PK>>
+    * automation_id : UUID <<FK>>
+    --
+    * trigger_type : varchar(50)
+    * conditions : json
+    * evaluation_order : int
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "AutomationAction" as automationAction {
+    * action_id : UUID <<PK>>
+    * automation_id : UUID <<FK>>
+    * device_id : UUID <<FK>>
+    --
+    * action_type : varchar(50)
+    * parameters : json
+    * execution_order : int
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "AutomationExecution" as automationExecution {
+    * execution_id : UUID <<PK>>
+    * automation_id : UUID <<FK>>
+    --
+    * started_at : timestamp
+    * completed_at : timestamp
+    * status : varchar(20)
+    * result : json
+    * triggered_by : varchar(100)
+}
+
+entity "DeviceGroup" as deviceGroup {
+    * group_id : UUID <<PK>>
+    * user_id : UUID <<FK>>
+    * home_id : UUID <<FK>>
+    --
+    * name : varchar(100)
+    * description : text
+    * created_at : timestamp
+    * updated_at : timestamp
+}
+
+entity "DeviceGroupMember" as deviceGroupMember {
+    * group_member_id : UUID <<PK>>
+    * group_id : UUID <<FK>>
+    * device_id : UUID <<FK>>
+    --
+    * added_at : timestamp
+}
+
+device ||--o{ deviceCapability : "has"
+device ||--o{ deviceStatus : "has current"
+device ||--o{ deviceCommand : "receives"
+device ||--o{ deviceTelemetry : "produces"
+
+userDevice }o--|| device : "references"
+
+homeSpace ||--o{ spaceDevice : "contains"
+spaceDevice }o--|| device : "references"
+
+automation ||--o{ automationTrigger : "has"
+automation ||--o{ automationAction : "performs"
+automation ||--o{ automationExecution : "has history of"
+automationAction }o--|| device : "targets"
+
+deviceGroup ||--o{ deviceGroupMember : "contains"
+deviceGroupMember }o--|| device : "references"
+
+@enduml

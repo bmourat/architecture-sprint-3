@@ -1,0 +1,23 @@
+@startuml
+!include ./lib/C4_Context.puml
+
+title WarmHouse Context Diagram
+
+Person(user, "User")
+Person(admin, "Administrator")
+
+System_Boundary(WarmHouseSystem, "WarmHouse System") {
+  System(heater, "Heating System", "Manages heating devices")
+  System(temp_sensor, "Monitoring", "Monitors temperature")
+}
+
+System_Ext(heater_controler, "Heater API", "REST API")
+System_Ext(temperature_sensor, "Sensor API", "REST API")
+
+Rel(user, WarmHouseSystem, "Uses the system")
+Rel(admin, WarmHouseSystem, "Manages the system")
+Rel(heater, heater_controler, "Switch on/off heater")
+Rel(temp_sensor, temperature_sensor, "Get current temperature")
+
+
+@enduml
